@@ -29,10 +29,10 @@
      ```
 
 5. Create a new JavaScript file:  
-   - Create a new file called `youtube-downloader.js` in the project directory.
+   - Create a new file called `index.js` in the project directory.
 
-6. Copy the code into the `youtube-downloader.js` file:  
-   - Copy the JavaScript code provided earlier into the `youtube-downloader.js` file.
+6. Copy the code into the `index.js` file:  
+   - Copy the JavaScript code provided earlier into the `index.js` file.
 
 7. Run the program:  
    - Save the file.
@@ -40,7 +40,7 @@
    - Make sure you're in the project directory.
    - Run the following command to execute the program:  
      ```shell
-     node youtube-downloader.js
+     node index.js
      ```
 
 8. Follow the prompts:  
