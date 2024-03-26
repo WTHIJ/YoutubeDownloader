@@ -29,10 +29,10 @@
      ```
 
 5. Create a new JavaScript file:  
-   - Create a new file called `index.js` in the project directory.
+   - Create a new file called `script.js` in the project directory.
 
-6. Copy the code into the `index.js` file:  
-   - Copy the JavaScript code provided earlier into the `index.js` file.
+6. Copy the code into the `script.js` file:  
+   - Copy the JavaScript code provided earlier into the `script.js` file.
 
 7. Run the program:  
    - Save the file.
@@ -40,7 +40,7 @@
    - Make sure you're in the project directory.
    - Run the following command to execute the program:  
      ```shell
-     node index.js
+     node script.js
      ```
 
 8. Follow the prompts:  
