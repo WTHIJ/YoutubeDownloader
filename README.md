@@ -1,7 +1,7 @@
 # YouTube Downloader (High‑Quality, CLI, tqdm Progress Bars)
 
 Small command‑line utility to download a YouTube video in the best possible
-quality, with colored, “pip‑like” progress bars using `tqdm` (no `rich`).
+quality.
 
 The script automatically decides whether to download:
 
@@ -53,6 +53,7 @@ your-project/
   - `ffmpeg` available on your system `PATH`
     - Required for the high‑quality adaptive mode (video+audio merge).
 
+> [!NOTE]
 > If `ffmpeg` is missing, the script will still work in **progressive mode**
 > (single file, possibly lower resolution).
 
@@ -70,7 +71,7 @@ cd youtube_downloader
 # Put yt_downloader.py here
 ```
 
-### 2. (Recommended) Create and activate a virtual environment
+### 2. Create and activate a virtual environment
 
 ```bash
 python3 -m venv .venv
@@ -97,7 +98,7 @@ Then install:
 pip install -r requirements.txt
 ```
 
-### 4. Install `ffmpeg` (optional but highly recommended)
+### 4. Install `ffmpeg` (optional but _highly_ recommended)
 
 Install `ffmpeg` using your OS package manager or from the official website:
 
@@ -232,7 +233,8 @@ Colors are implemented with **ANSI escape codes** (no external color library):
 - Progress bars use a configured color (e.g. green for video, cyan for audio,
   magenta for progressive).
 
-> Note: Some terminals may not support ANSI colors; in that case you may see
+> [!NOTE]
+> Some terminals may not support ANSI colors; in that case you may see
 > raw codes like `\033[92m`. You can remove or adjust them if needed.
 
 ### 4. File naming and paths
@@ -343,13 +345,6 @@ mode by simply not installing `ffmpeg`.
 If your terminal does not support ANSI color codes, you might see sequences
 such as `\033[92m` in the output.
 
-Possible solutions:
-
-- Use a modern terminal emulator with ANSI color support.
-- Remove or edit the color constants in the script:
-  - `RESET`, `BOLD`, `GREEN`, `YELLOW`, `RED`, `CYAN`, `MAGENTA`, etc.
-- Replace them with empty strings if you want plain text only.
-
 ---
 
 ### Download fails for some videos
@@ -383,7 +378,8 @@ You can easily extend the script to:
 
 ## Legal Note
 
-This script is provided for **personal use only**.
+> [!IMPORTANT]
+> This script is provided for **personal use only**.
 
 - Make sure you respect **YouTube’s Terms of Service**.
 - Only download content for which you have the **rights** or **explicit
