@@ -1,4 +1,4 @@
-# YouTube Downloader (High‑Quality, CLI, tqdm Progress Bars)
+# YouTube Downloader
 
 Small command‑line utility to download a YouTube video in the best possible
 quality.
