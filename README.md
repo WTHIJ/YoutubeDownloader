@@ -10,7 +10,13 @@ The script automatically decides whether to download:
 
 depending on what streams are available and whether `ffmpeg` is installed.
 
----
+> [!NOTE]
+> You can get the repository content with the following command
+
+
+```bash
+git clone https://github.com/WTHIJ/YoutubeDownloader.git
+```
 
 ## Features
 
