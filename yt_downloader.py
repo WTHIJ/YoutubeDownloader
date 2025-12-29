@@ -5,7 +5,7 @@
 yt_downloader.py
 ----------------
 Small command-line utility to download a YouTube video in the best possible
-quality, with "pip-like" progress bars using tqdm (no rich).
+quality, with colored, "pip-like" progress bars using tqdm (no rich).
 
 Behavior:
 - If ffmpeg is available and there is a higher-resolution adaptive video
@@ -37,20 +37,37 @@ from tqdm import tqdm
 
 
 # ---------------------------------------------------------------------------
+# ANSI colors (for a more vivid CLI output)
+# ---------------------------------------------------------------------------
+
+RESET = "\033[0m"
+BOLD = "\033[1m"
+
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+MAGENTA = "\033[95m"
+
+TAG_INFO = f"{CYAN}[+]{RESET}"
+TAG_OK = f"{GREEN}[✓]{RESET}"
+TAG_WARN = f"{YELLOW}[!]{RESET}"
+TAG_ERR = f"{RED}[-]{RESET}"
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def sanitize_filename(name: str, replacement: str = "_") -> str:
     """Return a filesystem-safe version of a string."""
-    # Remove forbidden characters on most OS
     name = re.sub(r'[\\/*?:"<>|]', replacement, name)
-    # Strip whitespace and limit length a bit
     name = name.strip()[:200]
     return name or "video"
 
 
 def resolution_value(stream) -> int:
-    """Return the numeric resolution (e.g. '1080p' -> 108) or 0 if unknown."""
+    """Return the numeric resolution (e.g. '1080p' -> 1080) or 0 if unknown."""
     if not stream or not getattr(stream, "resolution", None):
         return 0
     try:
@@ -64,15 +81,19 @@ def is_ffmpeg_available() -> bool:
     return shutil.which("ffmpeg") is not None
 
 
-def create_progress_bar(total_bytes: Optional[int], desc: str, position: int = 0) -> tqdm:
+def create_progress_bar(
+    total_bytes: Optional[int],
+    desc: str,
+    position: int = 0,
+    colour: str = "green",
+) -> tqdm:
     """
     Create a tqdm progress bar with a 'pip-like' style:
 
-    - green bar
+    - colored bar
     - shows downloaded size, total size, speed, elapsed time
     """
     if total_bytes is None:
-        # tqdm accepts total=None, but for a nicer look we set 0 and still update.
         total_bytes = 0
 
     return tqdm(
@@ -81,10 +102,10 @@ def create_progress_bar(total_bytes: Optional[int], desc: str, position: int = 0
         unit_scale=True,
         unit_divisor=1024,
         desc=desc,
-        ascii=False,            # set to True if your terminal has issues
+        ascii=False,
         position=position,
         leave=True,
-        colour="green",         # remove this arg if your tqdm version is too old
+        colour=colour,      # remove if tqdm version is too old
         dynamic_ncols=True,
         bar_format=(
             "{l_bar}{bar} "
@@ -101,6 +122,7 @@ def download_with_progress(
     output_dir: Path,
     description: str,
     filename: Optional[str] = None,
+    colour: str = "green",
 ) -> Path:
     """
     Download a single stream (video-only or audio-only or progressive)
@@ -108,20 +130,17 @@ def download_with_progress(
 
     Returns the Path to the downloaded file.
     """
-    # Get size (exact or approximate)
     total_size = getattr(stream, "filesize", None)
     if total_size is None:
         total_size = getattr(stream, "filesize_approx", None)
 
-    progress_bar = create_progress_bar(total_size, desc=description)
+    progress_bar = create_progress_bar(total_size, desc=description, colour=colour)
 
     last_bytes_remaining = total_size or 0
 
     def on_progress(_stream, _chunk, bytes_remaining: int) -> None:
         nonlocal last_bytes_remaining
-        # Amount downloaded since last callback
         if total_size is None:
-            # If we don't know the total size, we can still display bytes downloaded.
             downloaded_now = len(_chunk)
         else:
             downloaded_now = last_bytes_remaining - bytes_remaining
@@ -130,10 +149,8 @@ def download_with_progress(
         if downloaded_now > 0:
             progress_bar.update(downloaded_now)
 
-    # Register callback just for this download
     yt.register_on_progress_callback(on_progress)
 
-    # Perform download
     try:
         file_path_str = stream.download(
             output_path=str(output_dir),
@@ -165,11 +182,11 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
     try:
-        print("[+] Fetching video info…")
+        print(f"{TAG_INFO} {BOLD}Fetching video info…{RESET}")
         yt = YouTube(url)
         title = yt.title or "video"
         safe_title = sanitize_filename(title)
-        print(f"[+] Title: {title}")
+        print(f"{TAG_INFO} Title: {BOLD}{title}{RESET}")
 
         # Best progressive stream (video + audio together)
         progressive_stream = (
@@ -201,9 +218,9 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
         prog_res = resolution_value(progressive_stream)
         video_res = resolution_value(video_stream)
 
-        print(f"[+] Best progressive stream: {prog_res or 'N/A'}p")
-        print(f"[+] Best adaptive video-only stream: {video_res or 'N/A'}p")
-        print(f"[+] ffmpeg available: {is_ffmpeg_available()}")
+        print(f"{TAG_INFO} Best progressive stream: {BOLD}{prog_res or 'N/A'}p{RESET}")
+        print(f"{TAG_INFO} Best adaptive video-only stream: {BOLD}{video_res or 'N/A'}p{RESET}")
+        print(f"{TAG_INFO} ffmpeg available: {BOLD}{is_ffmpeg_available()}{RESET}")
 
         use_adaptive = (
             is_ffmpeg_available()
@@ -216,7 +233,10 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
         # High quality mode: separate video + audio, then merge with ffmpeg
         # ------------------------------------------------------------------
         if use_adaptive:
-            print("\n[+] Using high-quality adaptive mode (video + audio + ffmpeg merge).")
+            print(
+                f"\n{TAG_INFO} {BOLD}{GREEN}Using high-quality adaptive mode"
+                f" (video + audio + ffmpeg merge).{RESET}"
+            )
 
             # -------------------------
             # Download video-only part
@@ -227,7 +247,10 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
                 video_stream, "filesize_approx", None
             )
             if video_size:
-                print(f"[+] Video size: {video_size / (1024 * 1024):.2f} MB")
+                print(
+                    f"{TAG_INFO} Video size: "
+                    f"{BOLD}{video_size / (1024 * 1024):.2f} MB{RESET}"
+                )
 
             video_path = download_with_progress(
                 yt=yt,
@@ -235,6 +258,7 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
                 output_dir=output_dir_path,
                 description="Downloading video",
                 filename=video_filename,
+                colour="green",
             )
 
             # -------------------------
@@ -246,7 +270,10 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
                 audio_stream, "filesize_approx", None
             )
             if audio_size:
-                print(f"[+] Audio size: {audio_size / (1024 * 1024):.2f} MB")
+                print(
+                    f"{TAG_INFO} Audio size: "
+                    f"{BOLD}{audio_size / (1024 * 1024):.2f} MB{RESET}"
+                )
 
             audio_path = download_with_progress(
                 yt=yt,
@@ -254,13 +281,17 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
                 output_dir=output_dir_path,
                 description="Downloading audio",
                 filename=audio_filename,
+                colour="cyan",
             )
 
             # -------------------------
             # Merge with ffmpeg
             # -------------------------
             final_path = output_dir_path / f"{safe_title}.mp4"
-            print(f"\n[+] Merging video and audio with ffmpeg into: {final_path.name}")
+            print(
+                f"\n{TAG_INFO} Merging video and audio with ffmpeg into: "
+                f"{BOLD}{final_path.name}{RESET}"
+            )
 
             cmd = [
                 "ffmpeg",
@@ -280,56 +311,63 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
                 video_path.unlink(missing_ok=True)
                 audio_path.unlink(missing_ok=True)
             except TypeError:
-                # Python < 3.8 does not support missing_ok
                 if video_path.exists():
                     video_path.unlink()
                 if audio_path.exists():
                     audio_path.unlink()
 
-            print("\n[✓] Download and merge completed!")
-            print(f"[+] Final file: {final_path.resolve()}")
+            print(f"\n{TAG_OK} Download and merge completed!")
+            print(f"{TAG_INFO} Final file: {BOLD}{final_path.resolve()}{RESET}")
 
         # ------------------------------------------------------------------
         # Fallback: single progressive stream with its own progress bar
         # ------------------------------------------------------------------
         else:
-            print("\n[+] Using progressive mode (single file: video + audio).")
+            print(
+                f"\n{TAG_WARN} {BOLD}{YELLOW}Using progressive mode"
+                f" (single file: video + audio).{RESET}"
+            )
 
             if progressive_stream is None:
-                print("[-] Could not find a suitable video stream.")
+                print(f"{TAG_ERR} Could not find a suitable video stream.")
                 sys.exit(1)
 
             file_size = getattr(progressive_stream, "filesize", None) or getattr(
                 progressive_stream, "filesize_approx", None
             )
             if file_size:
-                print(f"[+] Resolution: {progressive_stream.resolution}")
-                print(f"[+] Size: {file_size / (1024 * 1024):.2f} MB")
-            print(f"[+] Output directory: {output_dir_path.resolve()}")
+                print(
+                    f"{TAG_INFO} Resolution: {BOLD}{progressive_stream.resolution}{RESET}"
+                )
+                print(
+                    f"{TAG_INFO} Size: "
+                    f"{BOLD}{file_size / (1024 * 1024):.2f} MB{RESET}"
+                )
+            print(f"{TAG_INFO} Output directory: {BOLD}{output_dir_path.resolve()}{RESET}")
 
-            # Download with a single progress bar
             final_path = download_with_progress(
                 yt=yt,
                 stream=progressive_stream,
                 output_dir=output_dir_path,
                 description="Downloading",
                 filename=f"{safe_title}.mp4",
+                colour="magenta",
             )
 
-            print("\n[✓] Download completed!")
-            print(f"[+] File saved to: {final_path.resolve()}")
+            print(f"\n{TAG_OK} Download completed!")
+            print(f"{TAG_INFO} File saved to: {BOLD}{final_path.resolve()}{RESET}")
 
     except PytubeFixError as e:
-        print(f"[-] YouTube / pytubefix error: {e}")
+        print(f"{TAG_ERR} YouTube / pytubefix error: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\n[-] Download interrupted by user.")
+        print(f"\n{TAG_ERR} Download interrupted by user.")
         sys.exit(1)
     except subprocess.CalledProcessError as e:
-        print(f"[-] ffmpeg execution error: {e}")
+        print(f"{TAG_ERR} ffmpeg execution error: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"[-] Unexpected error: {e}")
+        print(f"{TAG_ERR} Unexpected error: {e}")
         sys.exit(1)
 
 
