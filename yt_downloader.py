@@ -166,7 +166,7 @@ def download_with_progress(
 # Core logic
 # ---------------------------------------------------------------------------
 
-def download_video(url: str, output_dir: str = "downloads") -> None:
+def download_video(url: str, output_dir: str = "downloads", force_best_quality: bool = False) -> None:
     """
     Download a YouTube video.
 
@@ -177,6 +177,8 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
     - Otherwise:
         * download the best progressive (video + audio) stream
           with a progress bar.
+    - If force_best_quality is True:
+        * always use adaptive mode (requires ffmpeg)
     """
     output_dir_path = Path(output_dir)
     output_dir_path.mkdir(parents=True, exist_ok=True)
@@ -222,11 +224,29 @@ def download_video(url: str, output_dir: str = "downloads") -> None:
         print(f"{TAG_INFO} Best adaptive video-only stream: {BOLD}{video_res or 'N/A'}p{RESET}")
         print(f"{TAG_INFO} ffmpeg available: {BOLD}{is_ffmpeg_available()}{RESET}")
 
+        # Check requirements for force_best_quality mode
+        if force_best_quality:
+            if not is_ffmpeg_available():
+                print(
+                    f"{TAG_ERR} Error: --force-best requires ffmpeg to be installed. "
+                    f"Please install ffmpeg or remove the --force-best flag."
+                )
+                sys.exit(1)
+            if video_stream is None or audio_stream is None:
+                print(
+                    f"{TAG_ERR} Error: --force-best requires both video-only and "
+                    f"audio-only streams to be available for this video."
+                )
+                sys.exit(1)
+
         use_adaptive = (
-            is_ffmpeg_available()
-            and video_stream is not None
-            and audio_stream is not None
-            and video_res > prog_res
+            force_best_quality
+            or (
+                is_ffmpeg_available()
+                and video_stream is not None
+                and audio_stream is not None
+                and video_res > prog_res
+            )
         )
 
         # ------------------------------------------------------------------
@@ -395,13 +415,19 @@ def parse_args() -> argparse.Namespace:
         default="downloads",
         help="Output directory (default: ./downloads)",
     )
+    parser.add_argument(
+        "-f",
+        "--force-best",
+        action="store_true",
+        help="Force best quality mode (always download separate video+audio streams and merge with ffmpeg)",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     """Entry point for the command-line interface."""
     args = parse_args()
-    download_video(args.url, args.output)
+    download_video(args.url, args.output, args.force_best)
 
 
 if __name__ == "__main__":
