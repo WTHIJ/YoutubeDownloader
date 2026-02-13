@@ -155,12 +155,28 @@ python yt_downloader.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ" -o "./my_v
 
 The output directory will be created automatically if it does not exist.
 
+### Force best quality mode
+
+By default, the script automatically chooses between adaptive mode (separate video+audio) and progressive mode based on available quality. To force the script to always use the best quality adaptive mode (requires ffmpeg):
+
+```bash
+python yt_downloader.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --force-best
+```
+
+Or using the short flag:
+
+```bash
+python yt_downloader.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ" -f
+```
+
+This will always download the best video-only and audio-only streams separately and merge them, regardless of progressive stream quality. If ffmpeg is not available or the video doesn't have adaptive streams, the script will fail with a clear error message.
+
 ---
 
 ## Command‑Line Options
 
 ```text
-usage: yt_downloader.py [-h] [-o OUTPUT] url
+usage: yt_downloader.py [-h] [-o OUTPUT] [-f] url
 
 Download a YouTube video in very good quality. If ffmpeg is available and a
 higher-resolution adaptive stream exists, video and audio are downloaded
@@ -173,6 +189,8 @@ options:
   -h, --help            show this help message and exit
   -o OUTPUT, --output OUTPUT
                         Output directory (default: ./downloads)
+  -f, --force-best      Force best quality mode (always download separate
+                        video+audio streams and merge with ffmpeg)
 ```
 
 ---
